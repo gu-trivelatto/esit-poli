@@ -59,6 +59,9 @@ class TypeRouter(BaseRouter):
         elif type == 'mixed':
             message += "Mixed branch\n"
             selection = "mixed"
+        else:
+            message += "General branch (default)\n"
+            selection = "general"
 
         if self.debug:
             self.helper.save_debug(message)
@@ -67,7 +70,7 @@ class TypeRouter(BaseRouter):
 
 class MixedRouter(BaseRouter):
     def execute(self) -> str:
-        data_completeness = self.state['complete_data']
+        data_completeness = self.state['is_data_complete']
 
         message = "---MIXED ROUTER---\nROUTE TO: "
 
@@ -200,4 +203,4 @@ class TranslationRouter(BaseRouter):
             message += "translate output\n"
             translate = True
         
-        return translate
+        return str(translate)

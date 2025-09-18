@@ -43,7 +43,7 @@ class AgentBase(ABC):
         pass
 
     def execute(self) -> GraphStateType:
-        pass
+        return self.state
     
 class ResearchAgentBase(ABC):
     def __init__(self, llm_models, retriever, web_tool, state: GraphStateType, app, debug):
@@ -87,7 +87,7 @@ class ResearchAgentBase(ABC):
         pass
 
     def execute(self) -> GraphStateType:
-        pass
+        return self.state
 
 class DateGetter(AgentBase):
     def get_prompt_template(self) -> PromptTemplate:
@@ -662,12 +662,13 @@ class ResearchInfoWeb(ResearchAgentBase):
         full_searches = []
         for idx, keyword in enumerate(keywords):
             temp_docs = self.web_tool.execute(keyword)
+            web_results = ''
             if type(temp_docs) == list:
                 for d in temp_docs:
-                    web_results = f'Source: {d["url"]}\n{d["content"]}\n'
+                    web_results += f'Source: {d["url"]}\n{d["content"]}\n'
                 web_results = Document(page_content=web_results)
             elif type(temp_docs) == dict:
-                web_results = f'\nSource: {d["url"]}\n{d["content"]}'
+                web_results = f'\nSource: {temp_docs["url"]}\n{temp_docs["content"]}'
                 web_results = Document(page_content=web_results)
             else:
                 web_results = 'No results'
@@ -1122,6 +1123,8 @@ class ModifyModel(AgentBase):
         
         # Load workbook for modifications
         workbook = load_workbook(filename=self.base_model)
+        new_params = {}
+        message = ''
         
         for i in range(0,3):
             if i != 0:
@@ -1201,7 +1204,11 @@ class ModifyModel(AgentBase):
             self.helper.save_debug(f'FINAL RESULTS OF MODIFICATION:\n{message}\n')
         
         self.state['num_steps'] = num_steps
-        self.state['context'] = context + [message]
+        if isinstance(message, list):
+            self.state['context'] = context + message
+        else:
+            context.append(message)
+            self.state['context'] = context
         self.state['action_history'] = action_history
         
         return self.state
@@ -1592,6 +1599,7 @@ class CompareModel(AgentBase):
         action_history = self.state['action_history']
         num_steps = self.state['num_steps']
         num_steps += 1
+        llm_output = ''
 
         runs_dir_path = 'CESM/Runs'
         
@@ -1624,8 +1632,8 @@ class CompareModel(AgentBase):
             prompt = self.get_analysis_type_prompt_template()
             llm_chain = prompt | self.json_model | JsonOutputParser()
             
-            llm_output = llm_chain.invoke({"user_input": user_input})
-            type = llm_output['type']
+            llm_output_json = llm_chain.invoke({"user_input": user_input})
+            type = llm_output_json['type']
         else:
             type = 'yearly_diff'
 
@@ -1808,11 +1816,21 @@ class PlotModel(AgentBase):
                         #    ['TimeSeries','POWER_CONSUMPTION'],
                         #    ['TimeSeries','POWER_PRODUCTION'],
                            ]
-            
-        commodities = [str(c) for c in dao.get_set("commodity")]
-        commodities.remove('Dummy')
+        
+        c_options = dao.get_set("commodity")
+        if c_options is not None:
+            commodities = [str(c) for c in c_options]
+            commodities.remove('Dummy')
+        else:
+            commodities = []
 
-        years = [int(y) for y in dao.get_set("year")]
+        years = []
+        y_options = dao.get_set("year")
+        if y_options is not None:
+            for y in y_options:
+                if isinstance(y, (int, float, str)):
+                    years.append(int(y))
+            
 
         output = select_plot_chain.invoke({"user_input": user_input,
                                             "available_plots": available_plots})
@@ -1862,6 +1880,8 @@ class PlotModel(AgentBase):
         for plot in final_plots:
             plot_type = plot[0]
             plot_subtype = plot[1]
+            commodity = 'NO_COMMODITY'
+            year = 0
             if len(plot) == 3:
                 commodity = plot[2]
                 if not(commodity in commodities) and not(commodity == 'NO_COMMODITY'):

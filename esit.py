@@ -7,13 +7,13 @@ import customtkinter
 from abc import ABC
 from tkinter import *
 from threading import Thread
-from llm_src.state import GraphStateType
-from langgraph.graph import StateGraph
+from llm_src.state import GraphState
+from langgraph.graph.state import CompiledStateGraph
 from llm_src.chat_llm import GraphBuilder
 from llm_src.helper import HelperFunctions
 
 class Chat(ABC):
-    def __init__(self, graph: StateGraph, recursion_limit, debug):
+    def __init__(self, graph: CompiledStateGraph, recursion_limit, debug):
         try:
             os.remove("metadata/chat_history.pkl")
         except:
@@ -34,17 +34,19 @@ class Chat(ABC):
         history.append({"role": "user", "content": input})
         self.helper.save_history(history)
 
-        inputs = GraphStateType.initialize(input, history)
+        inputs = GraphState.initialize(input, history)
+        last_iter = {}
         for output in self.graph.stream(inputs, {"recursion_limit": self.recursion_limit}):
             with open('metadata/chat_control.log', 'r') as f:
                 control_flag = f.read()
             if control_flag == 'aborting':
-                value['final_answer'] = 'Generation aborted'
+                last_iter['final_answer'] = 'Generation aborted'
                 break
             for key, value in output.items():
+                last_iter = value
                 if self.debug:
                     self.helper.save_debug(f"Finished running <{key}> \n")
-        return value['final_answer']
+        return last_iter['final_answer']
                 
 class App(customtkinter.CTk):
     def __init__(self, debug, font_size):

@@ -10,9 +10,10 @@ from abc import ABC
 from langchain_groq import ChatGroq
 from llm_src.state import GraphStateType
 from langgraph.graph import END, StateGraph
+from langgraph.graph.state import CompiledStateGraph
 from langchain_community.tools.tavily_search import TavilySearchResults
 
-from llama_parse import LlamaParse
+from llama_parse import LlamaParse, ResultType
 import qdrant_client
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.core import Settings
@@ -65,7 +66,10 @@ class RAGRetriever(ABC):
         Settings.llm = chat_model
             
         if update_collection:
-            parsed_documents = LlamaParse(result_type='markdown').load_data(glob.glob('rag_source/*.pdf'))
+            pdf_files = glob.glob('rag_source/*.pdf')
+            parsed_documents = []
+            for pdf_file in pdf_files:
+                parsed_documents.extend(LlamaParse(result_type=ResultType.MD).load_data(pdf_file))
             
             vector_store = QdrantVectorStore(client=client, collection_name='pdf_paper_rag')
             storage_context = StorageContext.from_defaults(vector_store=vector_store)
@@ -201,7 +205,7 @@ class GraphBuilder(ABC):
     
     ##### Build the Graph #####
 
-    def build(self) -> StateGraph:
+    def build(self) -> CompiledStateGraph:
         workflow = StateGraph(GraphStateType)
 
         ### Define the nodes ###
@@ -337,5 +341,6 @@ class GraphBuilder(ABC):
         )
         workflow.add_edge("output_translator", "final_answer_printer")
         workflow.add_edge("final_answer_printer", END)
-
+        
         return workflow.compile()
+        

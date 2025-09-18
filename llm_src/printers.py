@@ -36,4 +36,4 @@ class FinalAnswerPrinter(PrinterBase):
         
         self.helper.save_history(history)
         
-        return self.state
+        return

@@ -76,9 +76,9 @@ class HelperFunctions(ABC):
         annual_co2_limit = df['annual_co2_limit'][base_index]
         co2_price = df['co2_price'][base_index]
         
-        if math.isnan(discount_rate):
+        if isinstance(discount_rate, float) and math.isnan(discount_rate):
             discount_rate = None
-        if math.isnan(co2_price):
+        if isinstance(co2_price, float) and math.isnan(co2_price):
             co2_price = None
 
         return {'discount_rate': discount_rate, 'annual_co2_limit': annual_co2_limit, 'co2_price': co2_price}
@@ -239,20 +239,18 @@ class HelperFunctions(ABC):
         return workbook, result
     
     def load_results(self, runs_dir_path, sim_name, variables):
-    # Instantiate access to the result DBs (base and new)
+        # Instantiate access to the result DBs (base and new)
         sim_name = f'{sim_name}-Base'
         db_path = os.path.join(runs_dir_path, sim_name, 'db.sqlite')
         conn = sqlite3.connect(db_path)
         dao = DAO(conn)
 
         # Populate the result dataframes from the DB
-        for idx, variable in enumerate(variables):
-            df_value = dao.get_as_dataframe(variable)
-            if idx == 0:
-                df = df_value.rename(columns={'value': variable})
-            else:
-                df[variable] = df_value['value']
-        
+        dfs = []
+        for variable in variables:
+            df_value = dao.get_as_dataframe(variable).rename(columns={'value': variable})
+            dfs.append(df_value.reset_index(drop=True))
+        df = pd.concat(dfs, axis=1)
         return df
 
     def fill_empty_rows(self, df_base, df_new):
