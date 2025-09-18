@@ -24,15 +24,19 @@ If you cloned this repository without initializing submodules, you can do the fo
 
 This has the same effect as running `git clone` with the submodule setting.
 
-## Installing the dependencies
+## Installing the dependencies (using uv)
 
 1. Change the directory to the repository:
     ```console
     > cd ESIT
     ```
-2. Install the package:
+2. Create a virtual environment:
     ```console
-    > pip install -e .
+    > uv venv .venv
+    ```
+3. Install the dependencies:
+    ```console
+    > uv sync
     ```
 
 ## Setting up the environment
