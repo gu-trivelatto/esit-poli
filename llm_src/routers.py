@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
-from llm_src.state import GraphState
+from llm_src.state import GraphStateType
 from llm_src.helper import HelperFunctions
 
 class BaseRouter(ABC):
-    def __init__(self, state: GraphState, debug):
+    def __init__(self, state: GraphStateType, debug):
         self.state = state
         self.debug = debug
         self.helper = HelperFunctions()

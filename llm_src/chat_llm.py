@@ -8,7 +8,7 @@ import llm_src.printers as printers
 
 from abc import ABC
 from langchain_groq import ChatGroq
-from llm_src.state import GraphState
+from llm_src.state import GraphStateType
 from langgraph.graph import END, StateGraph
 from langchain_community.tools.tavily_search import TavilySearchResults
 
@@ -102,107 +102,107 @@ class GraphBuilder(ABC):
     
     # Agents (Nodes of the Graph)
     
-    def date_getter(self, state: GraphState) -> GraphState:
+    def date_getter(self, state: GraphStateType) -> GraphStateType:
         return agents.DateGetter(llm_models, self.es_models, state, self.app, self.debug).execute()
     
-    def input_translator(self, state: GraphState) -> GraphState:
+    def input_translator(self, state: GraphStateType) -> GraphStateType:
         return agents.InputTranslator(llm_models, self.es_models, state, self.app, self.debug).execute()
     
-    def tool_bypasser(self, state: GraphState) -> GraphState:
+    def tool_bypasser(self, state: GraphStateType) -> GraphStateType:
         return agents.ToolBypasser(llm_models, self.es_models, state, self.app, self.debug).execute()
     
-    def type_identifier(self, state: GraphState) -> GraphState:
+    def type_identifier(self, state: GraphStateType) -> GraphStateType:
         return agents.TypeIdentifier(llm_models, self.es_models, state, self.app, self.debug).execute()
     
-    def mixed(self, state: GraphState) -> GraphState:
+    def mixed(self, state: GraphStateType) -> GraphStateType:
         return agents.Mixed(llm_models, self.es_models, state, self.app, self.debug).execute()
     
-    def query_generator(self, state: GraphState) -> GraphState:
+    def query_generator(self, state: GraphStateType) -> GraphStateType:
         return agents.QueryGenerator(llm_models, self.es_models, state, self.app, self.debug).execute()
 
-    def research_info_web(self, state: GraphState) -> GraphState:
+    def research_info_web(self, state: GraphStateType) -> GraphStateType:
         return agents.ResearchInfoWeb(llm_models, retriever, web_tool, state, self.app, self.debug).execute()
 
-    def calculator(self, state: GraphState) -> GraphState:
+    def calculator(self, state: GraphStateType) -> GraphStateType:
         return agents.Calculator(llm_models, self.es_models, state, self.app, self.debug).execute()
     
-    def context_analyzer(self, state: GraphState) -> GraphState:
+    def context_analyzer(self, state: GraphStateType) -> GraphStateType:
         return agents.ContextAnalyzer(llm_models, self.es_models, state, self.app, self.debug).execute()
     
-    def es_necessary_actions(self, state: GraphState) -> GraphState:
+    def es_necessary_actions(self, state: GraphStateType) -> GraphStateType:
         return agents.ESNecessaryActionsSelector(llm_models, self.es_models, state, self.app, self.debug).execute()
     
-    def es_action_selector(self, state: GraphState) -> GraphState:
+    def es_action_selector(self, state: GraphStateType) -> GraphStateType:
         return agents.ESActionSelector(llm_models, self.es_models, state, self.app, self.debug).execute()
     
-    def input_consolidator(self, state: GraphState) -> GraphState:
+    def input_consolidator(self, state: GraphStateType) -> GraphStateType:
         return agents.InputConsolidator(llm_models, self.es_models, state, self.app, self.debug).execute()
 
-    def run_model(self, state: GraphState) -> GraphState:
+    def run_model(self, state: GraphStateType) -> GraphStateType:
         return agents.RunModel(llm_models, self.es_models, state, self.app, self.debug).execute()
     
-    def modify_model(self, state: GraphState) -> GraphState:
+    def modify_model(self, state: GraphStateType) -> GraphStateType:
         return agents.ModifyModel(llm_models, self.es_models, state, self.app, self.debug).execute()
     
-    def info_type_identifier(self, state: GraphState) -> GraphState:
+    def info_type_identifier(self, state: GraphStateType) -> GraphStateType:
         return agents.InfoTypeIdentifier(llm_models, self.es_models, state, self.app, self.debug).execute()
     
-    def rag_search(self, state: GraphState) -> GraphState:
+    def rag_search(self, state: GraphStateType) -> GraphStateType:
         return agents.ResearchInfoRAG(llm_models, retriever, web_tool, state, self.app, self.debug).execute()
     
-    def consult_model(self, state: GraphState) -> GraphState:
+    def consult_model(self, state: GraphStateType) -> GraphStateType:
         return agents.ConsultModel(llm_models, self.es_models, state, self.app, self.debug).execute()
     
-    def compare_model(self, state: GraphState) -> GraphState:
+    def compare_model(self, state: GraphStateType) -> GraphStateType:
         return agents.CompareModel(llm_models, self.es_models, state, self.app, self.debug).execute()
     
-    def plot_model(self, state: GraphState) -> GraphState:
+    def plot_model(self, state: GraphStateType) -> GraphStateType:
         return agents.PlotModel(llm_models, self.es_models, state, self.app, self.debug).execute()
 
-    def output_generator(self, state: GraphState) -> GraphState:
+    def output_generator(self, state: GraphStateType) -> GraphStateType:
         return agents.OutputGenerator(llm_models, self.es_models, state, self.app, self.debug).execute()
     
-    def output_translator(self, state: GraphState) -> GraphState:
+    def output_translator(self, state: GraphStateType) -> GraphStateType:
         return agents.OutputTranslator(llm_models, self.es_models, state, self.app, self.debug).execute()
     
     # Printers (nodes of the Graph)
 
-    def state_printer(self, state: GraphState) -> None:
+    def state_printer(self, state: GraphStateType) -> None:
         return printers.StatePrinter(state, self.debug).execute()
 
-    def final_answer_printer(self, state: GraphState) -> None:
+    def final_answer_printer(self, state: GraphStateType) -> None:
         return printers.FinalAnswerPrinter(state, self.debug).execute()
     
     # Routers (conditional edges of the Graph)
 
-    def bypass_router(self, state: GraphState) -> str:
+    def bypass_router(self, state: GraphStateType) -> str:
         return routers.BypassRouter(state, self.debug).execute()
 
-    def type_router(self, state: GraphState) -> str:
+    def type_router(self, state: GraphStateType) -> str:
         return routers.TypeRouter(state, self.debug).execute()
 
-    def mixed_router(self, state: GraphState) -> str:
+    def mixed_router(self, state: GraphStateType) -> str:
         return routers.MixedRouter(state, self.debug).execute()
 
-    def es_action_router(self, state: GraphState) -> str:
+    def es_action_router(self, state: GraphStateType) -> str:
         return routers.ESActionRouter(state, self.debug).execute()
 
-    def context_router(self, state: GraphState) -> str:
+    def context_router(self, state: GraphStateType) -> str:
         return routers.ContextRouter(state, self.debug).execute()
 
-    def tool_router(self, state: GraphState) -> str:
+    def tool_router(self, state: GraphStateType) -> str:
         return routers.ToolRouter(state, self.debug).execute()
     
-    def info_type_router(self, state: GraphState) -> str:
+    def info_type_router(self, state: GraphStateType) -> str:
         return routers.InfoTypeRouter(state, self.debug).execute()
     
-    def translation_router(self, state: GraphState) -> str:
+    def translation_router(self, state: GraphStateType) -> str:
         return routers.TranslationRouter(state, self.debug).execute()
     
     ##### Build the Graph #####
 
     def build(self) -> StateGraph:
-        workflow = StateGraph(GraphState)
+        workflow = StateGraph(GraphStateType)
 
         ### Define the nodes ###
         workflow.add_node("date_getter", self.date_getter)

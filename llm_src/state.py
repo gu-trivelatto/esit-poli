@@ -3,7 +3,7 @@ from typing_extensions import TypedDict
 
 ### State
 
-class GraphState(TypedDict):
+class GraphStateType(TypedDict):
     """
     Represents the state of the graph.
 
@@ -39,32 +39,31 @@ class GraphState(TypedDict):
     action_history: dict
     next_action: str
     retrieval_type: str
-    model_modified: str
-    sim_status: str
+    model_modified: bool
+    sim_status: str | None
     model_info: List[str]
     final_answer: str
     
+class GraphState:
     @staticmethod
-    def initialize(user_input: str, history: List[dict]) -> 'GraphState':
-        return GraphState(
-            num_steps=0,
-            history=history,
-            target_language='',
-            user_input=user_input,
-            is_conversation=False,
-            consolidated_input="",
-            input_type="",
-            selected_tool="",
-            query_history=[],
-            next_query={},
-            context=[],
-            is_data_complete=False,
-            action_history={'modify': 'no', 'run': 'no', 'compare': 'no', 'plot': 'no', 'consult': 'no'},
-            next_action="",
-            retrieval_type="",
-            model_modified=False,
-            sim_status=None,
-            model_info=[],
-            final_answer=""
-        )
-    
+    def initialize(user_input: str, history: List[dict]) -> 'GraphStateType':
+        return GraphStateType({
+            "num_steps": 0,
+            "history": history,
+            "target_language": '',
+            "user_input": user_input,
+            "is_conversation": False,
+            "consolidated_input": "",
+            "input_type": "",
+            "query_history": [],
+            "next_query": {},
+            "context": [],
+            "is_data_complete": False,
+            "action_history": {'modify': 'no', 'run': 'no', 'compare': 'no', 'plot': 'no', 'consult': 'no'},
+            "next_action": "",
+            "retrieval_type": "",
+            "model_modified": False,
+            "sim_status": None,
+            "model_info": [],
+            "final_answer": ""
+        })

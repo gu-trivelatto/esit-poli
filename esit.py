@@ -7,7 +7,7 @@ import customtkinter
 from abc import ABC
 from tkinter import *
 from threading import Thread
-from llm_src.state import GraphState
+from llm_src.state import GraphStateType
 from langgraph.graph import StateGraph
 from llm_src.chat_llm import GraphBuilder
 from llm_src.helper import HelperFunctions
@@ -34,7 +34,7 @@ class Chat(ABC):
         history.append({"role": "user", "content": input})
         self.helper.save_history(history)
 
-        inputs = GraphState.initialize(input, history)
+        inputs = GraphStateType.initialize(input, history)
         for output in self.graph.stream(inputs, {"recursion_limit": self.recursion_limit}):
             with open('metadata/chat_control.log', 'r') as f:
                 control_flag = f.read()

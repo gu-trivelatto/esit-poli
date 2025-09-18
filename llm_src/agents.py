@@ -11,7 +11,7 @@ from CESM.core.plotter import Plotter, PlotType
 from CESM.core.data_access import DAO
 from openpyxl import load_workbook
 from abc import ABC, abstractmethod
-from llm_src.state import GraphState
+from llm_src.state import GraphStateType
 from llm_src.helper import HelperFunctions
 from langchain.schema import Document
 from langchain.prompts import PromptTemplate
@@ -22,7 +22,7 @@ from langchain_core.output_parsers import JsonOutputParser
 # TODO standardize the way the agents interact with the state
 
 class AgentBase(ABC):
-    def __init__(self, llm_models, es_models, state: GraphState, app, debug):
+    def __init__(self, llm_models, es_models, state: GraphStateType, app, debug):
         self.chat_model = llm_models['chat_model']
         self.json_model = llm_models['json_model']
         self.ht_model = llm_models['ht_model']
@@ -42,11 +42,11 @@ class AgentBase(ABC):
     def get_prompt_template(self) -> PromptTemplate:
         pass
 
-    def execute(self) -> GraphState:
+    def execute(self) -> GraphStateType:
         pass
     
 class ResearchAgentBase(ABC):
-    def __init__(self, llm_models, retriever, web_tool, state: GraphState, app, debug):
+    def __init__(self, llm_models, retriever, web_tool, state: GraphStateType, app, debug):
         self.retriever = retriever
         self.web_tool = web_tool
         self.chat_model = llm_models['chat_model']
@@ -86,14 +86,14 @@ class ResearchAgentBase(ABC):
     def get_prompt_template(self) -> PromptTemplate:
         pass
 
-    def execute(self) -> GraphState:
+    def execute(self) -> GraphStateType:
         pass
 
 class DateGetter(AgentBase):
     def get_prompt_template(self) -> PromptTemplate:
         return super().get_prompt_template()
     
-    def execute(self) -> GraphState:
+    def execute(self) -> GraphStateType:
         self.helper.save_chat_status('Processing')
         num_steps = self.state['num_steps']
         num_steps += 1
@@ -132,7 +132,7 @@ class InputTranslator(AgentBase):
             input_variables=["user_input"],
         )
     
-    def execute(self) -> GraphState:
+    def execute(self) -> GraphStateType:
         user_input = self.state['user_input']
         num_steps = self.state['num_steps']
         num_steps += 1
@@ -186,7 +186,7 @@ class ToolBypasser(AgentBase):
             input_variables=["user_input"],
         )
     
-    def execute(self) -> GraphState:
+    def execute(self) -> GraphStateType:
         prompt = self.get_prompt_template()
         llm_chain = prompt | self.json_model | JsonOutputParser()
         
@@ -253,7 +253,7 @@ class TypeIdentifier(AgentBase):
             input_variables=["user_input","history"],
         )
     
-    def execute(self) -> GraphState:
+    def execute(self) -> GraphStateType:
         prompt = self.get_prompt_template()
         llm_chain = prompt | self.json_model | JsonOutputParser()
         
@@ -310,7 +310,7 @@ class InputConsolidator(AgentBase):
             input_variables=["user_input", "history"],
         )
         
-    def execute(self) -> GraphState:
+    def execute(self) -> GraphStateType:
         prompt = self.get_prompt_template()
         llm_chain = prompt | self.json_model | JsonOutputParser()
         
@@ -391,7 +391,7 @@ class ESNecessaryActionsSelector(AgentBase):
             input_variables=["user_input", "action_history"],
         )
         
-    def execute(self) -> GraphState:
+    def execute(self) -> GraphStateType:
         prompt = self.get_prompt_template()
         llm_chain = prompt | self.json_model | JsonOutputParser()
         
@@ -416,7 +416,7 @@ class ESActionSelector(AgentBase):
     def get_prompt_template(self) -> PromptTemplate:
         return super().get_prompt_template()
         
-    def execute(self) -> GraphState:
+    def execute(self) -> GraphStateType:
         self.helper.save_chat_status('Processing')
         action_history = self.state['action_history']
         num_steps = self.state['num_steps']
@@ -488,7 +488,7 @@ class QueryGenerator(AgentBase):
             input_variables=["user_input","context","query_history","history"],
         )
         
-    def execute(self) -> GraphState:
+    def execute(self) -> GraphStateType:
         prompt = self.get_prompt_template()
         llm_chain = prompt | self.json_model | JsonOutputParser()
         
@@ -546,7 +546,7 @@ class Mixed(AgentBase):
             input_variables=["user_input","context","history"],
         )
         
-    def execute(self) -> GraphState:
+    def execute(self) -> GraphStateType:
         prompt = self.get_prompt_template()
         llm_chain = prompt | self.json_model | JsonOutputParser()
         
@@ -599,7 +599,7 @@ class ContextAnalyzer(AgentBase):
             input_variables=["user_input","context","history"]
         )
         
-    def execute(self) -> GraphState:
+    def execute(self) -> GraphStateType:
         self.helper.save_chat_status('Processing')
         prompt = self.get_prompt_template()
         llm_chain = prompt | self.json_model | JsonOutputParser()
@@ -640,7 +640,7 @@ class ResearchInfoWeb(ResearchAgentBase):
             input_variables=["query"],
         )
         
-    def execute(self) -> GraphState:
+    def execute(self) -> GraphStateType:
         self.helper.save_chat_status('Searching info in the internet')
         if self.debug:
             self.helper.save_debug("---RESEARCH INFO SEARCHING---")
@@ -723,7 +723,7 @@ class Calculator(AgentBase):
             input_variables=["query","context"],
         )
         
-    def execute(self) -> GraphState:
+    def execute(self) -> GraphStateType:
         self.helper.save_chat_status('Calculating result')
         prompt = self.get_prompt_template()
         llm_chain = prompt | self.json_model | JsonOutputParser()
@@ -756,7 +756,7 @@ class RunModel(AgentBase):
     def get_prompt_template(self) -> PromptTemplate:
         return super().get_prompt_template()
     
-    def execute(self) -> GraphState:
+    def execute(self) -> GraphStateType:
         self.helper.save_chat_status('Running model')
         action_history = self.state['action_history']
         context = self.state['context']
@@ -1076,7 +1076,7 @@ class ModifyModel(AgentBase):
             input_variables=["user_input", "modifications"],
         )
 
-    def execute(self) -> GraphState:
+    def execute(self) -> GraphStateType:
         self.helper.save_chat_status('Modifying model')
         if self.debug:
             self.helper.save_debug('---MODEL MODIFIER---')
@@ -1238,7 +1238,7 @@ class InfoTypeIdentifier(AgentBase):
             input_variables=["user_input"],
         )
     
-    def execute(self) -> GraphState:
+    def execute(self) -> GraphStateType:
         prompt = self.get_prompt_template()
         llm_chain = prompt | self.json_model | JsonOutputParser()
         
@@ -1282,7 +1282,7 @@ class ResearchInfoRAG(ResearchAgentBase):
             input_variables=["query"],
         )
         
-    def execute(self) -> GraphState:
+    def execute(self) -> GraphStateType:
         self.helper.save_chat_status('Consulting the source paper')
         question_rag_prompt = self.get_prompt_template()
         answer_analyzer_prompt = self.get_answer_analyzer_prompt_template()
@@ -1431,7 +1431,7 @@ class ConsultModel(AgentBase):
                 input_variables=["user_input","cp","cs","param","scen_infos","info"],
         )
     
-    def execute(self) -> GraphState:
+    def execute(self) -> GraphStateType:
         self.helper.save_chat_status('Consulting the model data')
         user_input = self.state['consolidated_input']
         context = self.state['context']
@@ -1585,7 +1585,7 @@ class CompareModel(AgentBase):
                 input_variables=["user_input","variations","cost_variation"],
         )
 
-    def execute(self) -> GraphState:
+    def execute(self) -> GraphStateType:
         self.helper.save_chat_status('Comparing results')
         user_input = self.state['consolidated_input']
         context = self.state['context']
@@ -1766,7 +1766,7 @@ class PlotModel(AgentBase):
             input_variables=["user_input","plot_selections","years"],
         )
     
-    def execute(self) -> GraphState:
+    def execute(self) -> GraphStateType:
         self.helper.save_chat_status('Plotting results')
         user_input = self.state['consolidated_input']
         action_history = self.state['action_history']
@@ -1983,7 +1983,7 @@ class OutputGenerator(AgentBase):
             input_variables=["user_input","context","action_history","history"],
         )
         
-    def execute(self) -> GraphState:
+    def execute(self) -> GraphStateType:
         self.helper.save_chat_status('Generating output')
         prompt = self.get_prompt_template()
         llm_chain = prompt | self.ht_model | StrOutputParser()
@@ -2027,7 +2027,7 @@ class OutputTranslator(AgentBase):
             input_variables=["tool_output", "target_language"],
         )
     
-    def execute(self) -> GraphState:
+    def execute(self) -> GraphStateType:
         final_answer = self.state['final_answer']
         target_language = self.state['target_language']
         num_steps = self.state['num_steps']
