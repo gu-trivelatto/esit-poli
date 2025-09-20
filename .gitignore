@@ -3,3 +3,5 @@ __pycache__/
 test*
 rag_source/metadata.pkl
 .venv/*
+.env
+*.egg-info

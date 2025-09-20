@@ -7,10 +7,10 @@ import customtkinter
 from abc import ABC
 from tkinter import *
 from threading import Thread
-from llm_src.state import GraphState
+from src.libs.state import GraphState
 from langgraph.graph.state import CompiledStateGraph
-from llm_src.chat_llm import GraphBuilder
-from llm_src.helper import HelperFunctions
+from src.chat_llm import GraphBuilder
+from src.libs.helper import HelperFunctions
 
 class Chat(ABC):
     def __init__(self, graph: CompiledStateGraph, recursion_limit, debug):
@@ -22,7 +22,6 @@ class Chat(ABC):
         self.recursion_limit = recursion_limit
         self.debug = debug
         self.helper = HelperFunctions()
-        self.helper.save_simulation_status('not_runned')
 
     def invoke(self, input) -> str:
         # run the agent

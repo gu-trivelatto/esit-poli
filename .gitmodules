@@ -1,3 +1,0 @@
-[submodule "CESM"]
-	path = CESM
-	url = https://github.com/gu-trivelatto/CESM_ESIT.git

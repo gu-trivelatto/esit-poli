@@ -1,104 +1,26 @@
-import os
-import yaml
-import glob
-import pickle
-import llm_src.agents as agents
-import llm_src.routers as routers
-import llm_src.printers as printers
-
 from abc import ABC
-from langchain_groq import ChatGroq
-from llm_src.state import GraphStateType
+from IPython.display import Image, display
+
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
-from langchain_community.tools.tavily_search import TavilySearchResults
 
-from llama_parse import LlamaParse, ResultType
-import qdrant_client
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.core import Settings
-from llama_index.core import VectorStoreIndex, StorageContext
-from llama_index.vector_stores.qdrant import QdrantVectorStore
+import src.libs.agents as agents
+import src.libs.routers as routers
+import src.libs.printers as printers
+from src.libs.state import GraphStateType
 
-with open('metadata/secrets.yml', 'r') as f:
-    secrets = yaml.load(f, Loader=yaml.SafeLoader)
+from src.tools.web_search import WebSearchTool
+from src.tools.rag_retriever import RAGRetriever
 
-os.environ["GROQ_API_KEY"] = secrets['groq'][0]
-chat_model = ChatGroq(
-            model="llama3-70b-8192",
-        )
-json_model = ChatGroq(
-            model="llama3-70b-8192",
-        ).bind(response_format={"type": "json_object"})
-# High Token model (higher limit for tokens per request, but has daily limit)
-ht_model = ChatGroq(
-            model="llama-3.1-70b-versatile",
-        )
-ht_json_model = ChatGroq(
-            model="llama-3.1-70b-versatile",
-        ).bind(response_format={"type": "json_object"})
-
-llm_models = {'chat_model': chat_model,
-              'json_model': json_model,
-              'ht_model': ht_model,
-              'ht_json_model': ht_json_model}
-
-class RAGRetriever(ABC):
-    def __init__(self):
-        os.environ["LLAMA_CLOUD_API_KEY"] = secrets['llama-cloud'][0]
-        
-        pdf_list = [f.split('/')[-1] for f in glob.glob('rag_source/*.pdf')]
-
-        try:
-            with open('rag_source/metadata.pkl', 'rb') as handle:
-                old_pdf_list = pickle.load(handle)
-            update_collection = False if old_pdf_list == pdf_list else True
-            print('No updates detected on the RAG source files, proceeding with current collection.')
-        except:
-            update_collection = True
-            print('RAG source files changed, updating collection.')
-        
-        client = qdrant_client.QdrantClient(api_key=secrets['qdrant']['api-key'], url=secrets['qdrant']['url'])
-        modelPath = "sentence-transformers/all-MiniLM-l6-v2"
-        embedding_model = HuggingFaceEmbedding(model_name=modelPath)
-        
-        Settings.embed_model = embedding_model
-        Settings.llm = chat_model
-            
-        if update_collection:
-            pdf_files = glob.glob('rag_source/*.pdf')
-            parsed_documents = []
-            for pdf_file in pdf_files:
-                parsed_documents.extend(LlamaParse(result_type=ResultType.MD).load_data(pdf_file))
-            
-            vector_store = QdrantVectorStore(client=client, collection_name='pdf_paper_rag')
-            storage_context = StorageContext.from_defaults(vector_store=vector_store)
-            index = VectorStoreIndex.from_documents(documents=parsed_documents, storage_context=storage_context, show_progress=True)
-            
-            with open('rag_source/metadata.pkl', 'wb') as handle:
-                pickle.dump(pdf_list, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        else:
-            vector_store = QdrantVectorStore(client=client, collection_name='pdf_paper_rag')
-            index = VectorStoreIndex.from_vector_store(vector_store, embedding_model)
-        
-        self.query_engine = index.as_query_engine()
-    
-    def execute(self, query):
-        return self.query_engine.query(query)
-    
-class WebSearchTool(ABC):
-    def __init__(self):
-        os.environ["TAVILY_API_KEY"] = secrets['tavily'][0]
-        self.web_search_tool = TavilySearchResults()
-    
-    def execute(self, query):
-        return self.web_search_tool.invoke({"query": query, "max_results": 3})
-    
-retriever = RAGRetriever()
-web_tool = WebSearchTool()
+from src.config.models import Models
 
 class GraphBuilder(ABC):
     def __init__(self, model_path, app, debug):
+        self.llm_models = Models()
+
+        self.retriever = RAGRetriever(self.llm_models.chat_model)
+        self.web_tool = WebSearchTool()
+        
         self.es_models = {'base_model': f'{model_path}/DEModel.xlsx',
                           'mod_model': f'{model_path}/DEModel_modified.xlsx'}
         self.debug = debug
@@ -107,67 +29,67 @@ class GraphBuilder(ABC):
     # Agents (Nodes of the Graph)
     
     def date_getter(self, state: GraphStateType) -> GraphStateType:
-        return agents.DateGetter(llm_models, self.es_models, state, self.app, self.debug).execute()
+        return agents.DateGetter(self.llm_models, self.es_models, state, self.app, self.debug).execute()
     
     def input_translator(self, state: GraphStateType) -> GraphStateType:
-        return agents.InputTranslator(llm_models, self.es_models, state, self.app, self.debug).execute()
+        return agents.InputTranslator(self.llm_models, self.es_models, state, self.app, self.debug).execute()
     
     def tool_bypasser(self, state: GraphStateType) -> GraphStateType:
-        return agents.ToolBypasser(llm_models, self.es_models, state, self.app, self.debug).execute()
+        return agents.ToolBypasser(self.llm_models, self.es_models, state, self.app, self.debug).execute()
     
     def type_identifier(self, state: GraphStateType) -> GraphStateType:
-        return agents.TypeIdentifier(llm_models, self.es_models, state, self.app, self.debug).execute()
+        return agents.TypeIdentifier(self.llm_models, self.es_models, state, self.app, self.debug).execute()
     
     def mixed(self, state: GraphStateType) -> GraphStateType:
-        return agents.Mixed(llm_models, self.es_models, state, self.app, self.debug).execute()
+        return agents.Mixed(self.llm_models, self.es_models, state, self.app, self.debug).execute()
     
     def query_generator(self, state: GraphStateType) -> GraphStateType:
-        return agents.QueryGenerator(llm_models, self.es_models, state, self.app, self.debug).execute()
+        return agents.QueryGenerator(self.llm_models, self.es_models, state, self.app, self.debug).execute()
 
     def research_info_web(self, state: GraphStateType) -> GraphStateType:
-        return agents.ResearchInfoWeb(llm_models, retriever, web_tool, state, self.app, self.debug).execute()
+        return agents.ResearchInfoWeb(self.llm_models, retriever, web_tool, state, self.app, self.debug).execute()
 
     def calculator(self, state: GraphStateType) -> GraphStateType:
-        return agents.Calculator(llm_models, self.es_models, state, self.app, self.debug).execute()
+        return agents.Calculator(self.llm_models, self.es_models, state, self.app, self.debug).execute()
     
     def context_analyzer(self, state: GraphStateType) -> GraphStateType:
-        return agents.ContextAnalyzer(llm_models, self.es_models, state, self.app, self.debug).execute()
+        return agents.ContextAnalyzer(self.llm_models, self.es_models, state, self.app, self.debug).execute()
     
     def es_necessary_actions(self, state: GraphStateType) -> GraphStateType:
-        return agents.ESNecessaryActionsSelector(llm_models, self.es_models, state, self.app, self.debug).execute()
+        return agents.ESNecessaryActionsSelector(self.llm_models, self.es_models, state, self.app, self.debug).execute()
     
     def es_action_selector(self, state: GraphStateType) -> GraphStateType:
-        return agents.ESActionSelector(llm_models, self.es_models, state, self.app, self.debug).execute()
+        return agents.ESActionSelector(self.llm_models, self.es_models, state, self.app, self.debug).execute()
     
     def input_consolidator(self, state: GraphStateType) -> GraphStateType:
-        return agents.InputConsolidator(llm_models, self.es_models, state, self.app, self.debug).execute()
+        return agents.InputConsolidator(self.llm_models, self.es_models, state, self.app, self.debug).execute()
 
     def run_model(self, state: GraphStateType) -> GraphStateType:
-        return agents.RunModel(llm_models, self.es_models, state, self.app, self.debug).execute()
+        return agents.RunModel(self.llm_models, self.es_models, state, self.app, self.debug).execute()
     
     def modify_model(self, state: GraphStateType) -> GraphStateType:
-        return agents.ModifyModel(llm_models, self.es_models, state, self.app, self.debug).execute()
+        return agents.ModifyModel(self.llm_models, self.es_models, state, self.app, self.debug).execute()
     
     def info_type_identifier(self, state: GraphStateType) -> GraphStateType:
-        return agents.InfoTypeIdentifier(llm_models, self.es_models, state, self.app, self.debug).execute()
+        return agents.InfoTypeIdentifier(self.llm_models, self.es_models, state, self.app, self.debug).execute()
     
     def rag_search(self, state: GraphStateType) -> GraphStateType:
-        return agents.ResearchInfoRAG(llm_models, retriever, web_tool, state, self.app, self.debug).execute()
+        return agents.ResearchInfoRAG(self.llm_models, retriever, web_tool, state, self.app, self.debug).execute()
     
     def consult_model(self, state: GraphStateType) -> GraphStateType:
-        return agents.ConsultModel(llm_models, self.es_models, state, self.app, self.debug).execute()
+        return agents.ConsultModel(self.llm_models, self.es_models, state, self.app, self.debug).execute()
     
     def compare_model(self, state: GraphStateType) -> GraphStateType:
-        return agents.CompareModel(llm_models, self.es_models, state, self.app, self.debug).execute()
+        return agents.CompareModel(self.llm_models, self.es_models, state, self.app, self.debug).execute()
     
     def plot_model(self, state: GraphStateType) -> GraphStateType:
-        return agents.PlotModel(llm_models, self.es_models, state, self.app, self.debug).execute()
+        return agents.PlotModel(self.llm_models, self.es_models, state, self.app, self.debug).execute()
 
     def output_generator(self, state: GraphStateType) -> GraphStateType:
-        return agents.OutputGenerator(llm_models, self.es_models, state, self.app, self.debug).execute()
+        return agents.OutputGenerator(self.llm_models, self.es_models, state, self.app, self.debug).execute()
     
     def output_translator(self, state: GraphStateType) -> GraphStateType:
-        return agents.OutputTranslator(llm_models, self.es_models, state, self.app, self.debug).execute()
+        return agents.OutputTranslator(self.llm_models, self.es_models, state, self.app, self.debug).execute()
     
     # Printers (nodes of the Graph)
 
@@ -343,4 +265,8 @@ class GraphBuilder(ABC):
         workflow.add_edge("final_answer_printer", END)
         
         return workflow.compile()
+    
+    def display_graph(self) -> None:
+        compiledGraph = self.build()
+        display(Image(compiledGraph.get_graph().draw_mermaid_png()))
         

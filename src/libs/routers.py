@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
-from llm_src.state import GraphStateType
-from llm_src.helper import HelperFunctions
+from src.libs.state import GraphStateType
+from src.libs.helper import HelperFunctions
+
 
 class BaseRouter(ABC):
     def __init__(self, state: GraphStateType, debug):
@@ -80,43 +81,6 @@ class MixedRouter(BaseRouter):
         else:
             message += "Gather more context\n"
             selection = "needs_data"
-            
-        if self.debug:
-            self.helper.save_debug(message)
-            
-        return selection
-
-class ESActionRouter(BaseRouter):
-    def execute(self) -> str:
-        """
-        Route to the necessary action.
-        Args:
-            state (dict): The current graph state
-        Returns:
-            str: Next node to call
-        """
-        selection = self.state['next_action']
-        
-        message = "---ENERGY SYSTEM ACTION ROUTER---\nROUTE TO: "
-        
-        if selection == 'run':
-            message += "Run model\n"
-            selection = "run"
-        elif selection == 'modify':
-            message += "Modify model\n"
-            selection = "modify"
-        elif selection == 'consult':
-            message += "Consult model\n"
-            selection = "consult"
-        elif selection == 'compare':
-            message += "Compare results\n"
-            selection = "compare"
-        elif selection == 'plot':
-            message += "Plot results\n"
-            selection = "plot"
-        elif selection == 'no_action':
-            message += "Generate output\n"
-            selection = "no_action"
             
         if self.debug:
             self.helper.save_debug(message)

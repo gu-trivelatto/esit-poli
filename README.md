@@ -26,6 +26,10 @@ This has the same effect as running `git clone` with the submodule setting.
 
 ## Installing the dependencies (using uv)
 
+install unix odbc if running on linux
+sudo apt-get install unixodbc -y
+sudo apt-get install odbc-postgresql -y
+
 1. Change the directory to the repository:
     ```console
     > cd ESIT
