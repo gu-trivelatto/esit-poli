@@ -1,5 +1,7 @@
-from langchain_community.tools.tavily_search import TavilySearchResults
 from abc import ABC
+
+from langchain_community.tools.tavily_search import TavilySearchResults
+
 
 class WebSearchTool(ABC):
     def __init__(self):

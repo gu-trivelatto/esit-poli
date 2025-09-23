@@ -1,14 +1,20 @@
 import glob
 import pickle
 import qdrant_client
+
 from abc import ABC
+
 from langchain_groq import ChatGroq
+
 from llama_parse import LlamaParse, ResultType
+
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.core import Settings
 from llama_index.core import VectorStoreIndex, StorageContext
 from llama_index.vector_stores.qdrant import QdrantVectorStore
+
 from src.config.env import settings
+
 
 class RAGRetriever(ABC):
     def __init__(self, chat_model: ChatGroq):

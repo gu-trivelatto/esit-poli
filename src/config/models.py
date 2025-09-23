@@ -2,6 +2,7 @@ from abc import ABC
 
 from langchain_groq import ChatGroq
 
+
 class Models(ABC):
     def __init__(self):
         self.chat_model = ChatGroq(model="llama3-70b-8192")

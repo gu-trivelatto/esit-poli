@@ -1,6 +1,8 @@
 from abc import ABC
+
 from src.config.db import DataDB
 from src.libs.data_access import DataAccess
+
 import plotly.express as px
 import plotly.io as pio
 import pandas as pd

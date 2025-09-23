@@ -1,13 +1,14 @@
 from abc import ABC, abstractmethod
+
 from src.libs.state import GraphStateType
-from src.libs.helper import HelperFunctions
+from src.libs.memory import Memory
 
 
 class BaseRouter(ABC):
     def __init__(self, state: GraphStateType, debug):
         self.state = state
         self.debug = debug
-        self.helper = HelperFunctions()
+        self.memory = Memory()
     
     @abstractmethod
     def execute(self) -> str:
@@ -34,7 +35,7 @@ class BypassRouter(BaseRouter):
             selection = "tool"
 
         if self.debug:
-            self.helper.save_debug(message)
+            self.memory.save_debug(message)
             
         return selection
 
@@ -65,7 +66,7 @@ class TypeRouter(BaseRouter):
             selection = "general"
 
         if self.debug:
-            self.helper.save_debug(message)
+            self.memory.save_debug(message)
             
         return selection
 
@@ -83,7 +84,7 @@ class MixedRouter(BaseRouter):
             selection = "needs_data"
             
         if self.debug:
-            self.helper.save_debug(message)
+            self.memory.save_debug(message)
             
         return selection
     
@@ -114,7 +115,7 @@ class ToolRouter(BaseRouter):
             selection = "direct_output"
             
         if self.debug:
-            self.helper.save_debug(message)
+            self.memory.save_debug(message)
             
         return selection
 
@@ -134,7 +135,7 @@ class ContextRouter(BaseRouter):
             selection = "need_context"
             
         if self.debug:
-            self.helper.save_debug(message)
+            self.memory.save_debug(message)
             
         return selection
     
@@ -150,7 +151,7 @@ class InfoTypeRouter(BaseRouter):
             message += "Model retrieval\n"
             
         if self.debug:
-            self.helper.save_debug(message)
+            self.memory.save_debug(message)
             
         return type
 

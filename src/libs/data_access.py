@@ -1,4 +1,5 @@
 from abc import ABC
+
 from pyodbc import Cursor
 from datetime import datetime, timedelta
 

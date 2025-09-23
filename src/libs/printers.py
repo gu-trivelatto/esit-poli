@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
 from src.libs.state import GraphStateType
-from src.libs.helper import HelperFunctions
+from src.libs.memory import Memory
 
 
 class PrinterBase(ABC):
     def __init__(self, state: GraphStateType, debug):
         self.state = state
         self.debug = debug
-        self.helper = HelperFunctions()
+        self.memory = Memory()
     
     @abstractmethod
     def execute(self) -> None:
@@ -17,24 +17,24 @@ class StatePrinter(PrinterBase):
     def execute(self) -> None:
         """print the state"""
         if self.debug:
-            self.helper.save_debug("------------------STATE PRINTER------------------")
-            self.helper.save_debug(f"Num Steps: {self.state['num_steps']} \n")
-            self.helper.save_debug(f"Initial Query: {self.state['user_input']} \n" )
-            self.helper.save_debug(f"Consolidated Query: {self.state['consolidated_input']} \n")
-            self.helper.save_debug(f"Context: {self.state['context']} \n" )
-            self.helper.save_debug(f"Past actions: {self.state['action_history']} \n")
+            self.memory.save_debug("------------------STATE PRINTER------------------")
+            self.memory.save_debug(f"Num Steps: {self.state['num_steps']} \n")
+            self.memory.save_debug(f"Initial Query: {self.state['user_input']} \n" )
+            self.memory.save_debug(f"Consolidated Query: {self.state['consolidated_input']} \n")
+            self.memory.save_debug(f"Context: {self.state['context']} \n" )
+            self.memory.save_debug(f"Past actions: {self.state['action_history']} \n")
         return
 
 class FinalAnswerPrinter(PrinterBase):
     def execute(self) -> None:
         """prints final answer"""
         if self.debug:
-            self.helper.save_debug("------------------FINAL ANSWER------------------")
-            self.helper.save_debug(f"Final Answer: {self.state['final_answer']} \n")
+            self.memory.save_debug("------------------FINAL ANSWER------------------")
+            self.memory.save_debug(f"Final Answer: {self.state['final_answer']} \n")
             
         history = self.state['history']
         history.append({"role": "assistant", "content": self.state['final_answer']})
         
-        self.helper.save_history(history)
+        self.memory.save_history(history)
         
         return
