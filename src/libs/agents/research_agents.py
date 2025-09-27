@@ -13,10 +13,10 @@ class ResearchAgentBase(ABC):
     def __init__(self, llm_models, retriever, web_tool, state: GraphStateType, app, debug):
         self.retriever = retriever
         self.web_tool = web_tool
-        self.chat_model = llm_models['chat_model']
-        self.json_model = llm_models['json_model']
-        self.ht_model = llm_models['ht_model']
-        self.ht_json_model = llm_models['ht_json_model']
+        self.chat_model = llm_models.chat_model
+        self.json_model = llm_models.json_model
+        self.ht_model = llm_models.ht_model
+        self.ht_json_model = llm_models.ht_json_model
         self.state = state
         self.debug = debug
         self.app = app
@@ -77,7 +77,7 @@ class ResearchInfoWeb(ResearchAgentBase):
         if self.debug:
             self.memory.save_debug("---RESEARCH INFO SEARCHING---")
             
-        query = self.state['next_query']['next_query']
+        query = self.state['user_input']
         context = self.state['context']
         num_steps = self.state['num_steps']
         num_steps += 1
@@ -159,9 +159,8 @@ class ResearchInfoRAG(ResearchAgentBase):
         if self.debug:
             self.memory.save_debug("---RAG PDF PAPER RETRIEVER---")
             
-        query = self.state['consolidated_input']
+        query = self.state['user_input']
         context = self.state['context']
-        action_history = self.state['action_history']
         num_steps = self.state['num_steps']
         num_steps += 1
 
@@ -186,8 +185,6 @@ class ResearchInfoRAG(ResearchAgentBase):
         # TODO find a way of referencing the used pdfs
         result = f'Source: PDF paper \n{query}: \n{processed_searches}'
         
-        action_history['consult'] = 'done'
-        self.state['action_history'] = action_history
         self.state['context'] = context + [result]
         self.state['num_steps'] = num_steps
         

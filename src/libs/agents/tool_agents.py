@@ -45,7 +45,7 @@ class Calculator(AgentBase):
         prompt = self.get_prompt_template()
         llm_chain = prompt | self.json_model | JsonOutputParser()
     
-        query = self.state['next_query']['next_query']
+        query = self.state['user_input']
         context = self.state['context']
         num_steps = self.state['num_steps']
         num_steps += 1
@@ -108,7 +108,7 @@ class DataAgent(AgentBase):
         prompt = self.get_prompt_template()
         llm_chain = prompt | self.json_model | JsonOutputParser()
     
-        query = self.state['next_query']['next_query']
+        query = self.state['user_input']
         context = self.state['context']
         num_steps = self.state['num_steps']
         num_steps += 1

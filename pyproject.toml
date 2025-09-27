@@ -8,6 +8,7 @@ dependencies = [
     "beeprint>=2.4.11",
     "click>=8.2.1",
     "customtkinter>=5.2.2",
+    "grandalf>=0.8",
     "gurobipy>=12.0.3",
     "inquirerpy>=0.3.4",
     "ipython>=9.5.0",

@@ -38,55 +38,6 @@ class BypassRouter(BaseRouter):
             self.memory.save_debug(message)
             
         return selection
-
-class TypeRouter(BaseRouter):
-    def execute(self) -> str:
-        """
-        Route to the right path based on query type.
-        Args:
-            state (dict): The current graph state
-        Returns:
-            str: Next node to call
-        """
-        type = self.state['input_type']
-        
-        message = "---TYPE ROUTER---\nROUTE TO: "
-        
-        if type == 'general':
-            message += "General branch\n"
-            selection = "general"
-        elif type == 'energy_system':
-            message += "Energy System branch\n"
-            selection = "energy_system"
-        elif type == 'mixed':
-            message += "Mixed branch\n"
-            selection = "mixed"
-        else:
-            message += "General branch (default)\n"
-            selection = "general"
-
-        if self.debug:
-            self.memory.save_debug(message)
-            
-        return selection
-
-class MixedRouter(BaseRouter):
-    def execute(self) -> str:
-        data_completeness = self.state['is_data_complete']
-
-        message = "---MIXED ROUTER---\nROUTE TO: "
-
-        if data_completeness:
-            message += "Run command\n"
-            selection = "complete_data"
-        else:
-            message += "Gather more context\n"
-            selection = "needs_data"
-            
-        if self.debug:
-            self.memory.save_debug(message)
-            
-        return selection
     
 class ToolRouter(BaseRouter):
     def execute(self) -> str:
@@ -119,7 +70,7 @@ class ToolRouter(BaseRouter):
 
 class ContextRouter(BaseRouter):
     def execute(self) -> str:
-        query = self.state['next_query']
+        query = self.state['tool_query']
 
         message = "---CONTEXT ROUTER---\nROUTE TO: "
 
@@ -134,22 +85,6 @@ class ContextRouter(BaseRouter):
             self.memory.save_debug(message)
             
         return selection
-    
-class InfoTypeRouter(BaseRouter):
-    def execute(self) -> str:
-        type = self.state['retrieval_type']
-
-        message = "---INFO TYPE ROUTER---\nROUTE TO: "
-
-        if type == 'paper':
-            message += "Paper retrieval\n"
-        elif type == 'model':
-            message += "Model retrieval\n"
-            
-        if self.debug:
-            self.memory.save_debug(message)
-            
-        return type
 
 class TranslationRouter(BaseRouter):
     def execute(self) -> str:

@@ -10,7 +10,7 @@ from threading import Thread
 from src.libs.state import GraphState
 from langgraph.graph.state import CompiledStateGraph
 from src.chat_llm import GraphBuilder
-from src.libs.helper import HelperFunctions
+from src.libs.memory import Memory
 
 class Chat(ABC):
     def __init__(self, graph: CompiledStateGraph, recursion_limit, debug):
@@ -21,7 +21,7 @@ class Chat(ABC):
         self.graph = graph
         self.recursion_limit = recursion_limit
         self.debug = debug
-        self.helper = HelperFunctions()
+        self.memory = Memory()
 
     def invoke(self, input) -> str:
         # run the agent
@@ -31,7 +31,7 @@ class Chat(ABC):
         except:
             history = []
         history.append({"role": "user", "content": input})
-        self.helper.save_history(history)
+        self.memory.save_history(history)
 
         inputs = GraphState.initialize(input, history)
         last_iter = {}
@@ -42,9 +42,10 @@ class Chat(ABC):
                 last_iter['final_answer'] = 'Generation aborted'
                 break
             for key, value in output.items():
-                last_iter = value
+                if value is not None:
+                    last_iter = value
                 if self.debug:
-                    self.helper.save_debug(f"Finished running <{key}> \n")
+                    self.memory.save_debug(f"Finished running <{key}> \n")
         return last_iter['final_answer']
                 
 class App(customtkinter.CTk):
@@ -54,7 +55,7 @@ class App(customtkinter.CTk):
         customtkinter.set_appearance_mode('dark')
         self.debug = debug
         self.font_size = font_size
-        self.helper = HelperFunctions()
+        self.memory = Memory()
         
         self.title("ESIT")
         if self.debug:
@@ -221,7 +222,7 @@ class App(customtkinter.CTk):
         try:
             answer = self.chat.invoke(self.input_text)
         except Exception as e:
-            self.helper.save_debug(e)
+            self.memory.save_debug(e)
             answer = 'An error has ocurred, please try again'
         new_text = "\nASSISTANT:\n" + answer
         self.textbox.configure(state="normal")

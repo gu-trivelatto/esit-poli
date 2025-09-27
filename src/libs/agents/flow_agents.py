@@ -180,7 +180,7 @@ class ContextAnalyzer(AgentBase):
         prompt = self.get_prompt_template()
         llm_chain = prompt | self.json_model | JsonOutputParser()
         
-        user_input = self.state['consolidated_input']
+        user_input = self.state['user_input']
         context = self.state['context']
         history = self.state['history']
         num_steps = self.state['num_steps']
@@ -192,7 +192,7 @@ class ContextAnalyzer(AgentBase):
             self.memory.save_debug("---TOOL SELECTION---")
             self.memory.save_debug(f'READY TO ANSWER: {llm_output["ready_to_answer"]}\n')
         
-        self.state['next_query'] = llm_output
+        self.state['tool_query'] = llm_output
         self.state['num_steps'] = num_steps
         
         return self.state
@@ -203,6 +203,8 @@ class OutputTranslator(AgentBase):
             template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
             You are the final node of a tool, and you are responsible for translating the
             TOOL_OUTPUT from english to a given TARGET_LANGUAGE. \n
+            
+            The tool name is Energy System Insight Tool (ESIT), never translate this name. \n
             
             Your output must be a JSON object with a single key, 'output', where you should
             put the translated output. \n

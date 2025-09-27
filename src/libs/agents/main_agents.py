@@ -14,10 +14,10 @@ from src.libs.memory import Memory
 
 class AgentBase(ABC):
     def __init__(self, llm_models, es_models, state: GraphStateType, app, debug):
-        self.chat_model = llm_models['chat_model']
-        self.json_model = llm_models['json_model']
-        self.ht_model = llm_models['ht_model']
-        self.ht_json_model = llm_models['ht_json_model']
+        self.chat_model = llm_models.chat_model
+        self.json_model = llm_models.json_model
+        self.ht_model = llm_models.ht_model
+        self.ht_json_model = llm_models.ht_json_model
         self.state = state
         self.debug = debug
         self.app = app
@@ -93,10 +93,9 @@ class OutputGenerator(AgentBase):
             <|eot_id|><|start_header_id|>user<|end_header_id|>
             USER_INPUT: {user_input} \n
             CONTEXT: {context} \n
-            ACTION_HISTORY: {action_history} \n
             CHAT_HISTORY: {history} \n
             <|eot_id|><|start_header_id|>assistant<|end_header_id|>""",
-            input_variables=["user_input","context","action_history","history"],
+            input_variables=["datetime","user_input","context","history"],
         )
         
     def execute(self) -> GraphStateType:
@@ -108,20 +107,19 @@ class OutputGenerator(AgentBase):
         date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         user_input = self.state['user_input']
         context = self.state['context']
-        action_history = self.state['action_history']
         history = self.state['history']
         num_steps = self.state['num_steps']
         num_steps += 1
 
-        llm_output = llm_chain.invoke({"datetime": date, "user_input": user_input, "context": context, "action_history": action_history, "history": history})
+        llm_output = llm_chain.invoke({"datetime": date, "user_input": user_input, "context": context, "history": history})
         
         if self.debug:
             self.memory.save_debug("---GENERATE OUTPUT---")
             self.memory.save_debug(f'GENERATED OUTPUT:\n{llm_output}\n')
-        
+            
         if '\nSource:\n- None' in llm_output:
             llm_output = llm_output.replace('\nSource:\n- None','')
-            
+        
         self.state['num_steps'] = num_steps
         self.state['final_answer'] = llm_output
         

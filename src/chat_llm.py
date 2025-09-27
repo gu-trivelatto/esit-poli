@@ -82,9 +82,6 @@ class GraphBuilder(ABC):
     def tool_router(self, state: GraphStateType) -> str:
         return routers.ToolRouter(state, self.debug).execute()
     
-    def plot_router(self, state: GraphStateType) -> str:
-        return routers.InfoTypeRouter(state, self.debug).execute()
-    
     def translation_router(self, state: GraphStateType) -> str:
         return routers.TranslationRouter(state, self.debug).execute()
     
@@ -152,8 +149,8 @@ class GraphBuilder(ABC):
             "output_generator",
             self.translation_router,
             {
-                True: "output_translator",
-                False: "final_answer_printer"
+                'True': "output_translator",
+                'False': "final_answer_printer"
             }
         )
         workflow.add_edge("output_translator", "final_answer_printer")
@@ -163,5 +160,5 @@ class GraphBuilder(ABC):
     
     def display_graph(self) -> None:
         compiledGraph = self.build()
-        display(Image(compiledGraph.get_graph().draw_mermaid_png()))
+        print(compiledGraph.get_graph().draw_ascii())
         

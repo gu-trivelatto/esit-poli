@@ -20,8 +20,8 @@ class LoggerSettings(BaseModel):
     LEVEL: Literal['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'] = 'INFO'
 
 class Settings(BaseSettings):
-    TAVILY_API_KEY: str
-    GROQ_API_KEY: str
+    TAVILY_API_KEY: SecretStr
+    GROQ_API_KEY: SecretStr
     LLAMA_CLOUD_API_KEY: str
     QDRANT_API_KEY: str
     QDRANT_URL: str
