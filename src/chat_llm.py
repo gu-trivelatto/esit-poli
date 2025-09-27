@@ -1,5 +1,4 @@
 from abc import ABC
-from IPython.display import Image, display
 
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
@@ -20,48 +19,43 @@ from src.config.models import Models
 
 
 class GraphBuilder(ABC):
-    def __init__(self, model_path, app, debug):
+    def __init__(self, app, debug, init_tools=True):
         self.llm_models = Models()
 
-        self.retriever = RAGRetriever(self.llm_models.chat_model)
-        self.web_tool = WebSearchTool()
+        self.retriever = RAGRetriever(self.llm_models.chat_model) if init_tools else None
+        self.web_tool = WebSearchTool() if init_tools else None
         
-        self.es_models = {'base_model': f'{model_path}/DEModel.xlsx',
-                          'mod_model': f'{model_path}/DEModel_modified.xlsx'}
         self.debug = debug
         self.app = app
     
     # Agents (Nodes of the Graph)
     
     def input_translator(self, state: GraphStateType) -> GraphStateType:
-        return flow_agents.InputTranslator(self.llm_models, self.es_models, state, self.app, self.debug).execute()
-    
-    def tool_bypasser(self, state: GraphStateType) -> GraphStateType:
-        return flow_agents.ToolBypasser(self.llm_models, self.es_models, state, self.app, self.debug).execute()
+        return flow_agents.InputTranslator(self.llm_models, state, self.app, self.debug).execute()
     
     def tool_selector(self, state: GraphStateType) -> GraphStateType:
-        return flow_agents.ToolSelector(self.llm_models, self.es_models, state, self.app, self.debug).execute()
+        return flow_agents.ToolSelector(self.llm_models, state, self.app, self.debug).execute()
 
     def research_info_web(self, state: GraphStateType) -> GraphStateType:
         return research_agents.ResearchInfoWeb(self.llm_models, self.retriever, self.web_tool, state, self.app, self.debug).execute()
 
     def calculator(self, state: GraphStateType) -> GraphStateType:
-        return tool_agents.Calculator(self.llm_models, self.es_models, state, self.app, self.debug).execute()
+        return tool_agents.Calculator(self.llm_models, state, self.app, self.debug).execute()
     
     def context_analyzer(self, state: GraphStateType) -> GraphStateType:
-        return flow_agents.ContextAnalyzer(self.llm_models, self.es_models, state, self.app, self.debug).execute()
+        return flow_agents.ContextAnalyzer(self.llm_models, state, self.app, self.debug).execute()
     
     def rag_search(self, state: GraphStateType) -> GraphStateType:
         return research_agents.ResearchInfoRAG(self.llm_models, self.retriever, self.web_tool, state, self.app, self.debug).execute()
 
     def consult_data(self, state: GraphStateType) -> GraphStateType:
-        return tool_agents.DataAgent(self.llm_models, self.es_models, state, self.app, self.debug).execute()
+        return tool_agents.DataAgent(self.llm_models, state, self.app, self.debug).execute()
 
     def output_generator(self, state: GraphStateType) -> GraphStateType:
-        return main_agents.OutputGenerator(self.llm_models, self.es_models, state, self.app, self.debug).execute()
+        return main_agents.OutputGenerator(self.llm_models, state, self.app, self.debug).execute()
     
     def output_translator(self, state: GraphStateType) -> GraphStateType:
-        return flow_agents.OutputTranslator(self.llm_models, self.es_models, state, self.app, self.debug).execute()
+        return flow_agents.OutputTranslator(self.llm_models, state, self.app, self.debug).execute()
     
     # Printers (nodes of the Graph)
 
@@ -92,7 +86,6 @@ class GraphBuilder(ABC):
 
         ### Define the nodes ###
         workflow.add_node("input_translator", self.input_translator)
-        workflow.add_node("tool_bypasser", self.tool_bypasser)
         workflow.add_node("tool_selector", self.tool_selector)
         workflow.add_node("context_analyzer", self.context_analyzer)
         workflow.add_node("web_search", self.research_info_web) # web search
@@ -108,15 +101,7 @@ class GraphBuilder(ABC):
         
         # Entry and query type routing
         workflow.set_entry_point("input_translator")
-        workflow.add_edge("input_translator", "tool_bypasser")
-        workflow.add_conditional_edges(
-            "tool_bypasser",
-            self.bypass_router,
-            {
-                "output": "output_generator",
-                "tool": "tool_selector",
-            }
-        )
+        workflow.add_edge("input_translator", "tool_selector")
         workflow.add_conditional_edges(
             "tool_selector",
             self.tool_router,
@@ -125,6 +110,7 @@ class GraphBuilder(ABC):
                 "calculator": "calculator",
                 "rag_search": "rag_search",
                 "consult_data": "consult_data",
+                "none": "output_generator",
             }
         )
         
@@ -159,6 +145,7 @@ class GraphBuilder(ABC):
         return workflow.compile()
     
     def display_graph(self) -> None:
-        compiledGraph = self.build()
-        print(compiledGraph.get_graph().draw_ascii())
+        compiledGraph = self.build().get_graph()
+        compiledGraph.draw_ascii()
+        print(compiledGraph.draw_ascii())
         

@@ -20,9 +20,7 @@ class StatePrinter(PrinterBase):
             self.memory.save_debug("------------------STATE PRINTER------------------")
             self.memory.save_debug(f"Num Steps: {self.state['num_steps']} \n")
             self.memory.save_debug(f"Initial Query: {self.state['user_input']} \n" )
-            self.memory.save_debug(f"Consolidated Query: {self.state['consolidated_input']} \n")
             self.memory.save_debug(f"Context: {self.state['context']} \n" )
-            self.memory.save_debug(f"Past actions: {self.state['action_history']} \n")
         return
 
 class FinalAnswerPrinter(PrinterBase):

@@ -1,5 +1,6 @@
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.output_parsers import StrOutputParser
 
 from src.libs.state import GraphStateType
 from src.libs.agents.main_agents import AgentBase
@@ -51,59 +52,6 @@ class InputTranslator(AgentBase):
         
         return self.state
     
-class ToolBypasser(AgentBase):
-    def get_prompt_template(self) -> PromptTemplate:
-        return PromptTemplate(
-            template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-            You are part of the Energy System Insight Tool (ESIT), you are responsible for checking
-            if the user trying to have a simple interaction with the tool instead of searching for
-            information or consulting data. \n
-
-            Considering the USER_INPUT you should decide whether to route
-            the user to the tool or simply bypass it to generate a simple answer to the user. \n
-            
-            The cases where you will bypass to the output are when USER_INPUT contains:
-            - 'Hello!', 'Hi!', 'Hey!' or similars, without anything else;
-            - 'How are you?' or similars, without anything else;
-            - 'Who are you?' or similars;
-            - 'What do you do?' or similars;
-            - 'Thank you!', 'Thanks!', 'Thanks a lot!' or similars;
-            
-            You must output a JSON with a single key 'is_conversation' containing exclusivelly the 
-            selected type, which can be either true or false (use full lowercase for the boolean). \n
-            
-            Always use double quotes in the JSON object. \n
-            
-            <|eot_id|><|start_header_id|>user<|end_header_id|>
-            USER_INPUT : {user_input} \n
-            <|eot_id|><|start_header_id|>assistant<|end_header_id|>""",
-            input_variables=["user_input"],
-        )
-    
-    def execute(self) -> GraphStateType:
-        prompt = self.get_prompt_template()
-        llm_chain = prompt | self.json_model | JsonOutputParser()
-        
-        user_input = self.state['user_input']
-        num_steps = self.state['num_steps']
-        num_steps += 1
-        
-        llm_output = llm_chain.invoke({"user_input": user_input})
-        is_conversation = llm_output['is_conversation']
-        if type(is_conversation) == str:
-            is_conversation = True if is_conversation == 'true' else False
-        elif type(is_conversation) != bool:
-            is_conversation = False
-        
-        if self.debug:
-            self.memory.save_debug("---TYPE IDENTIFIER---")
-            self.memory.save_debug(f'BYPASS TO OUTPUT: {is_conversation}\n')
-        
-        self.state['is_conversation'] = is_conversation
-        self.state['num_steps'] = num_steps
-        
-        return self.state
-    
 class ToolSelector(AgentBase):
     def get_prompt_template(self) -> PromptTemplate:
         return PromptTemplate(
@@ -123,6 +71,8 @@ class ToolSelector(AgentBase):
             4. consult_data: Use this tool when the user is looking for specific data
                related to the energy system, such as consumption data, production data, or
                any other type of data that can be found in the system's database. \n
+            5. none: Use this option when none of the tools are required to answer the user input,
+               and you can answer the question directly. \n
             
             Your output must be a JSON object with a single key 'selected_tool', where the value
             must be the name of the selected tool as it appears in the provided list. \n
@@ -162,10 +112,8 @@ class ContextAnalyzer(AgentBase):
             You are an expert at analyzing the available CONTEXT and CHAT_HISTORY to decide if the available
             information is already enough to answer the question asked in USER_INPUT. \n
             
-            Your output is a JSON object with a single key 'ready_to_answer', where you can use either true
-            or false (always write it in lowercase). \n
-            
-            Always use double quotes in the JSON object. \n
+            Your output must be only 'ready' or 'continue', all lower case without
+            any backticks. \n
             
             <|eot_id|><|start_header_id|>user<|end_header_id|>
             USER_INPUT: {user_input} \n
@@ -178,7 +126,7 @@ class ContextAnalyzer(AgentBase):
     def execute(self) -> GraphStateType:
         self.memory.save_chat_status('Processing')
         prompt = self.get_prompt_template()
-        llm_chain = prompt | self.json_model | JsonOutputParser()
+        llm_chain = prompt | self.chat_model | StrOutputParser()
         
         user_input = self.state['user_input']
         context = self.state['context']
@@ -189,10 +137,10 @@ class ContextAnalyzer(AgentBase):
         llm_output = llm_chain.invoke({"user_input": user_input, "context": context, "history": history})
         
         if self.debug:
-            self.memory.save_debug("---TOOL SELECTION---")
-            self.memory.save_debug(f'READY TO ANSWER: {llm_output["ready_to_answer"]}\n')
+            self.memory.save_debug("---CONTEXT ANALYZER---")
+            self.memory.save_debug(f'READY TO ANSWER: {llm_output}\n')
         
-        self.state['tool_query'] = llm_output
+        self.state['is_data_complete'] = llm_output.lower() == "ready"
         self.state['num_steps'] = num_steps
         
         return self.state

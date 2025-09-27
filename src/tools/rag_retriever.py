@@ -29,9 +29,8 @@ class RAGRetriever(ABC):
             update_collection = True
             print('RAG source files changed, updating collection.')
 
-        client = qdrant_client.QdrantClient(api_key=settings.QDRANT_API_KEY, url=settings.QDRANT_URL)
-        modelPath = "sentence-transformers/all-MiniLM-l6-v2"
-        embedding_model = HuggingFaceEmbedding(model_name=modelPath)
+        client = qdrant_client.QdrantClient(api_key=settings.QDRANT_API_KEY.get_secret_value(), url=settings.QDRANT_URL)
+        embedding_model = HuggingFaceEmbedding(model_name=settings.HUGGINGFACE_EMBEDDING_MODEL)
         
         Settings.embed_model = embedding_model
         Settings.llm = chat_model

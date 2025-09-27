@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 
@@ -84,14 +82,14 @@ class DataAgent(AgentBase):
             
             The available operations are: \n
             1. get_consumption_distribution(period) - period can be "yesterday", "last_week" or "last_month"
-            2. no_plot
+            2. no_op
             
             You must output a JSON object with three keys, 'operation', that is the operation name
             as written in the provided list, 'parameters', which is a list with the parameters
             in the order they appear in the operation definition, and 'plot', which is a boolean
             indicating if the user wants to see the plotted data. \n
             
-            If you don't know the answer, you must choose the operation 'no_plot' with no parameters,
+            If you don't know the answer, you must choose the operation 'no_op' with no parameters,
             and plot as false. \n
 
             Always use double quotes in the JSON object. \n
@@ -133,8 +131,9 @@ class DataAgent(AgentBase):
             
             if plot:
                 self.plotter.plot_consumption_distribution(period)
+                str_result += ' [PLOT SHOWN]'
         else:
-            str_result = 'No data operation performed.'
+            str_result = 'The requested data operation can not be performed, stop the execution and inform the user'
         
         if self.debug:
             self.memory.save_debug(f'RESULT: {str_result}\n')

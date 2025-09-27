@@ -70,11 +70,11 @@ class ToolRouter(BaseRouter):
 
 class ContextRouter(BaseRouter):
     def execute(self) -> str:
-        query = self.state['tool_query']
+        data_complete = self.state['is_data_complete']
 
         message = "---CONTEXT ROUTER---\nROUTE TO: "
 
-        if query['ready_to_answer']:
+        if data_complete:
             message += "Final answer generation\n"
             selection = "ready_to_answer"
         else:

@@ -13,7 +13,7 @@ from src.libs.memory import Memory
 # TODO standardize the way the agents interact with the state
 
 class AgentBase(ABC):
-    def __init__(self, llm_models, es_models, state: GraphStateType, app, debug):
+    def __init__(self, llm_models, state: GraphStateType, app, debug):
         self.chat_model = llm_models.chat_model
         self.json_model = llm_models.json_model
         self.ht_model = llm_models.ht_model
@@ -21,9 +21,6 @@ class AgentBase(ABC):
         self.state = state
         self.debug = debug
         self.app = app
-        self.selected_value = None
-        self.base_model = es_models['base_model']
-        self.mod_model = es_models['mod_model']
         self.memory = Memory()
         self.plotter = Plotter()
         

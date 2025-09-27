@@ -20,7 +20,6 @@ class ResearchAgentBase(ABC):
         self.state = state
         self.debug = debug
         self.app = app
-        self.selected_value = None
         self.memory = Memory()
         
     def get_answer_analyzer_prompt_template(self) -> PromptTemplate:

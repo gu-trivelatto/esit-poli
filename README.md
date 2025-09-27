@@ -29,6 +29,7 @@ This has the same effect as running `git clone` with the submodule setting.
 install unix odbc if running on linux
 sudo apt-get install unixodbc -y
 sudo apt-get install odbc-postgresql -y
+sudo apt-get install python3-tk
 
 1. Change the directory to the repository:
     ```console
