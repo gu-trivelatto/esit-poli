@@ -40,7 +40,7 @@ class GraphBuilder(ABC):
         return flow_agents.ToolBypasser(self.llm_models, self.es_models, state, self.app, self.debug).execute()
     
     def tool_selector(self, state: GraphStateType) -> GraphStateType:
-        return flow_agents.ToolBypasser(self.llm_models, self.es_models, state, self.app, self.debug).execute()
+        return flow_agents.ToolSelector(self.llm_models, self.es_models, state, self.app, self.debug).execute()
 
     def research_info_web(self, state: GraphStateType) -> GraphStateType:
         return research_agents.ResearchInfoWeb(self.llm_models, self.retriever, self.web_tool, state, self.app, self.debug).execute()
@@ -55,10 +55,7 @@ class GraphBuilder(ABC):
         return research_agents.ResearchInfoRAG(self.llm_models, self.retriever, self.web_tool, state, self.app, self.debug).execute()
 
     def consult_data(self, state: GraphStateType) -> GraphStateType:
-        return research_agents.ResearchInfoRAG(self.llm_models, self.retriever, self.web_tool, state, self.app, self.debug).execute()
-    
-    def plot_model(self, state: GraphStateType) -> GraphStateType:
-        return research_agents.ResearchInfoRAG(self.llm_models, self.retriever, self.web_tool, state, self.app, self.debug).execute()
+        return tool_agents.DataAgent(self.llm_models, self.es_models, state, self.app, self.debug).execute()
 
     def output_generator(self, state: GraphStateType) -> GraphStateType:
         return main_agents.OutputGenerator(self.llm_models, self.es_models, state, self.app, self.debug).execute()
@@ -99,13 +96,12 @@ class GraphBuilder(ABC):
         ### Define the nodes ###
         workflow.add_node("input_translator", self.input_translator)
         workflow.add_node("tool_bypasser", self.tool_bypasser)
-        workflow.add_node("tool_selector", self.tool_selector) # implementar
+        workflow.add_node("tool_selector", self.tool_selector)
         workflow.add_node("context_analyzer", self.context_analyzer)
         workflow.add_node("web_search", self.research_info_web) # web search
         workflow.add_node("calculator", self.calculator)
         workflow.add_node("rag_search", self.rag_search)
-        workflow.add_node("consult_data", self.consult_data) # implementar
-        workflow.add_node("plot_data", self.plot_model) # implementar
+        workflow.add_node("consult_data", self.consult_data) 
         workflow.add_node("output_generator", self.output_generator)
         workflow.add_node("output_translator", self.output_translator)
         workflow.add_node("context_state_printer", self.state_printer)
@@ -138,15 +134,7 @@ class GraphBuilder(ABC):
         workflow.add_edge("web_search", "context_analyzer")
         workflow.add_edge("rag_search", "context_analyzer")
         workflow.add_edge("calculator", "context_analyzer")
-        workflow.add_conditional_edges(
-            "consult_data",
-            self.plot_router,
-            {
-                "plot": "plot_data",
-                "no_plot": "context_analyzer",
-            })
-        
-        workflow.add_edge("plot_data", "context_analyzer")
+        workflow.add_edge("consult_data", "context_analyzer")
 
         workflow.add_conditional_edges(
             "context_analyzer",

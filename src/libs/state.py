@@ -32,6 +32,7 @@ class GraphStateType(TypedDict):
     user_input: str
     consolidated_input: str
     is_conversation: bool
+    selected_tool: str
     input_type: str
     query_history: List[str]
     next_query: dict
@@ -54,6 +55,7 @@ class GraphState:
             "target_language": '',
             "user_input": user_input,
             "is_conversation": False,
+            "selected_tool": "",
             "consolidated_input": "",
             "input_type": "",
             "query_history": [],

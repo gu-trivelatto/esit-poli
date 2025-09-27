@@ -97,22 +97,18 @@ class ToolRouter(BaseRouter):
         Returns:
             str: Next node to call
         """
-        selection = self.state['next_query']['tool']
+        selection = self.state['selected_tool']
         
         message = "---TOOL ROUTER---\nROUTE TO: "
         
         if selection == 'web_search':
             message += "Web Search\n"
-            selection = "web_search"
         elif selection == 'calculator':
             message += "Calculator\n"
-            selection = "calculator"
-        elif selection == "user_input":
-            message += "User input\n"
-            selection = "direct_output"
-        elif selection == "no_action":
-            message += "No actions\n"
-            selection = "direct_output"
+        elif selection == "rag_search":
+            message += "Rag Search\n"
+        elif selection == "consult_data":
+            message += "Consult Data\n"
             
         if self.debug:
             self.memory.save_debug(message)

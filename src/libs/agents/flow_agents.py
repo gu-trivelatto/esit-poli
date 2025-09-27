@@ -9,7 +9,7 @@ class InputTranslator(AgentBase):
     def get_prompt_template(self) -> PromptTemplate:
         return PromptTemplate(
             template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-            You are responsible of verifying if the USER_INPUT is in another language other
+            You are responsible of verifying if the USER_INPUT is in any language other
             than english, if so, translate the input. If the text is already in english
             simply output the same text. \n
             
@@ -56,8 +56,8 @@ class ToolBypasser(AgentBase):
         return PromptTemplate(
             template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
             You are part of the Energy System Insight Tool (ESIT), you are responsible for checking
-            if the user trying to have a simple interaction with the tool instead of search for
-            information or manipulate the model. \n
+            if the user trying to have a simple interaction with the tool instead of searching for
+            information or consulting data. \n
 
             Considering the USER_INPUT you should decide whether to route
             the user to the tool or simply bypass it to generate a simple answer to the user. \n
@@ -103,6 +103,57 @@ class ToolBypasser(AgentBase):
         self.state['num_steps'] = num_steps
         
         return self.state
+    
+class ToolSelector(AgentBase):
+    def get_prompt_template(self) -> PromptTemplate:
+        return PromptTemplate(
+            template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+            You are part of the Energy System Insight Tool (ESIT), the execution until now decided
+            that the user input requires the use of a tool to be answered, however, before using
+            any tool, you need to decide which tool is the most appropriate for the user request. \n
+            
+            The following tools are available for you to use: \n
+            1. web_search: Use this tool when the user is looking for general information that
+               can be found on the internet, such as news, articles, or general knowledge.
+            2. calculator: Use this tool when the user is asking for mathematical calculations,
+               such as arithmetic operations, algebra, or any other type of mathematical problem.
+            3. rag_search: Use this tool when the user is looking for specific information
+               that can be found in the provided documents, such as reports, data sheets, or
+               any other type of document provided as a data source.
+            4. consult_data: Use this tool when the user is looking for specific data
+               related to the energy system, such as consumption data, production data, or
+               any other type of data that can be found in the system's database. \n
+            
+            Your output must be a JSON object with a single key 'selected_tool', where the value
+            must be the name of the selected tool as it appears in the provided list. \n
+            
+            Always use double quotes in the JSON object. \n
+            
+            <|eot_id|><|start_header_id|>user<|end_header_id|>
+            USER_INPUT : {user_input} \n
+            <|eot_id|><|start_header_id|>assistant<|end_header_id|>""",
+            input_variables=["user_input"],
+        )
+    
+    def execute(self) -> GraphStateType:
+        prompt = self.get_prompt_template()
+        llm_chain = prompt | self.json_model | JsonOutputParser()
+        
+        user_input = self.state['user_input']
+        num_steps = self.state['num_steps']
+        num_steps += 1
+        
+        llm_output = llm_chain.invoke({"user_input": user_input})
+        selected_tool = llm_output['selected_tool']
+        
+        if self.debug:
+            self.memory.save_debug("---TOOL SELECTOR---")
+            self.memory.save_debug(f'SELECTED TOOL: {selected_tool}\n')
+        
+        self.state['selected_tool'] = selected_tool
+        self.state['num_steps'] = num_steps
+        
+        return self.state
 
 class ContextAnalyzer(AgentBase):
     def get_prompt_template(self) -> PromptTemplate:
@@ -110,15 +161,6 @@ class ContextAnalyzer(AgentBase):
             template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
             You are an expert at analyzing the available CONTEXT and CHAT_HISTORY to decide if the available
             information is already enough to answer the question asked in USER_INPUT. \n
-
-            It's important to know that you are the context analyzer for a branch of a tool, and this branch is
-            responsible to gather general information to be used in the modeling context. If the USER_INPUT
-            is related to modeling and uses information available at the data sources to apply modeling actions
-            and all this information is available, then you should consider that the context is ready. Other
-            tools will be responsible of using this data for modeling. \n
-            
-            If there is nothing related to modeling you can simply define it as ready when all information is
-            gathered. \n
             
             Your output is a JSON object with a single key 'ready_to_answer', where you can use either true
             or false (always write it in lowercase). \n

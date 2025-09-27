@@ -68,3 +68,78 @@ class Calculator(AgentBase):
         self.state['num_steps'] = num_steps
         
         return self.state
+    
+class DataAgent(AgentBase):
+    def get_prompt_template(self) -> PromptTemplate:
+        return PromptTemplate(
+            template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+            You are an specialist at identifying the correct operation to be performed over the
+            system's data, you will get a list of operations that you can perform, along with
+            the necessary parameters for each operation. You will also get the QUERY with the
+            user request, and the CONTEXT with the information you have until now. \n
+            
+            Given all this, your job is to select the correct operation to be performed,
+            provide the necessary parameters for it, and decide if the user wants to see
+            the plotted data based on the QUERY and CONTEXT. \n
+            
+            The available operations are: \n
+            1. get_consumption_distribution(period) - period can be "yesterday", "last_week" or "last_month"
+            2. no_plot
+            
+            You must output a JSON object with three keys, 'operation', that is the operation name
+            as written in the provided list, 'parameters', which is a list with the parameters
+            in the order they appear in the operation definition, and 'plot', which is a boolean
+            indicating if the user wants to see the plotted data. \n
+            
+            If you don't know the answer, you must choose the operation 'no_plot' with no parameters,
+            and plot as false. \n
+
+            Always use double quotes in the JSON object. \n
+
+            <|eot_id|><|start_header_id|>user<|end_header_id|>
+            QUERY: {query} \n
+            CONTEXT: {context}
+            <|eot_id|><|start_header_id|>assistant<|end_header_id|>""",
+            input_variables=["query","context"],
+        )
+        
+    def execute(self) -> GraphStateType:
+        self.memory.save_chat_status('Getting data')
+        prompt = self.get_prompt_template()
+        llm_chain = prompt | self.json_model | JsonOutputParser()
+    
+        query = self.state['next_query']['next_query']
+        context = self.state['context']
+        num_steps = self.state['num_steps']
+        num_steps += 1
+        
+        llm_output = llm_chain.invoke({"query": query, "context": context})
+        operation = llm_output['operation']
+        parameters = llm_output['parameters']
+        plot = llm_output['plot']
+
+        if self.debug:
+            self.memory.save_debug("---DATA TOOL---")
+            self.memory.save_debug(f'OPERATION: {operation}')
+            self.memory.save_debug(f'PARAMETERS: {parameters}')
+            self.memory.save_debug(f'PLOT: {plot}')
+
+        if operation == 'get_consumption_distribution':
+            period = parameters[0]
+            dist = self.plotter.data_access.get_consumption_distribution(period)
+            labels = [f"{tipo.capitalize()}" for tipo in dist.keys()]
+            values = [round(valor, 1) for valor in dist.values()]
+            str_result = f'Consumo por tipo de aparelho em {period}: ' + ', '.join([f'{labels[i]}: {values[i]} kWh' for i in range(len(labels))])
+            
+            if plot:
+                self.plotter.plot_consumption_distribution(period)
+        else:
+            str_result = 'No data operation performed.'
+        
+        if self.debug:
+            self.memory.save_debug(f'RESULT: {str_result}\n')
+            
+        self.state['context'] = context + [str_result]
+        self.state['num_steps'] = num_steps
+        
+        return self.state
