@@ -35,5 +35,6 @@ dependencies = [
     "qdrant-client>=1.15.1",
     "scipy>=1.16.2",
     "sqlalchemy>=2.0.43",
+    "statsmodels>=0.14.5",
     "tk>=0.1.0",
 ]

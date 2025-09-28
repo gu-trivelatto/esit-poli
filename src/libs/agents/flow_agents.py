@@ -116,9 +116,15 @@ class ContextAnalyzer(AgentBase):
             context starts repeating itself, indicating that it got stuck in a loop, you must
             decide that the answer is ready to avoid infinite loops. \n
             
-            Your output must be only 'ready' or 'continue', all lower case without
-            any backticks. \n
+            For data gathering and plotting tasks, the text [PLOT SHOWN] in the context
+            indicates that the plot was successfully shown to the user. If it was the
+            only action requested, you can assume it is ready. \n
             
+            Your output must be only 'ready' or 'continue', all lower case without
+            any backticks, where ready means that all actions that needed to be
+            taken already were, and continue means that there are still actions
+            that need to be taken.\n
+
             <|eot_id|><|start_header_id|>user<|end_header_id|>
             USER_INPUT: {user_input} \n
             CONTEXT : {context} \n

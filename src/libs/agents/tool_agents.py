@@ -82,8 +82,41 @@ class DataAgent(AgentBase):
             
             The available operations are: \n
             1. get_consumption_distribution(period) - period can be "yesterday", "last_week" or "last_month"
-            2. no_op
+            2. get_daily_consumption(period) - period can be "last_week", "last_month" or "last_year"
+            3. get_power_readings_by_device(period) - period can be "yesterday" or "last_week"
+            4. get_power_factor_analysis(device_id, period) - device_id is an integer, period can be "last_week" or "last_month"
+            5. no_op \n
             
+            Here is the device_id list if needed: \n
+            - Computador 1 => ID: 1
+            - Monitor 1 => ID: 2
+            - Computador 2 => ID: 3
+            - Monitor 2 => ID: 4
+            - Computador 3 => ID: 5
+            - Monitor 3 => ID: 6
+            - Computador 4 => ID: 7
+            - Monitor 4 => ID: 8
+            - Computador 5 => ID: 9
+            - Monitor 5 => ID: 10
+            - Computador 6 => ID: 11
+            - Monitor 6 => ID: 12
+            - Computador 7 => ID: 13
+            - Monitor 7 => ID: 14
+            - Computador 8 => ID: 15
+            - Monitor 8 => ID: 16
+            - Computador 9 => ID: 17
+            - Monitor 9 => ID: 18
+            - Computador 10 => ID: 19
+            - Monitor 10 => ID: 20
+            - Computador 11 => ID: 21
+            - Monitor 11 => ID: 22
+            - Computador 12 => ID: 23
+            - Monitor 12 => ID: 24
+            - Roteador => ID: 25
+            - Projetor => ID: 26
+            - Ar-condicionado 1 => ID: 27
+            - Ar-condicionado 2 => ID: 28 \n
+
             You must output a JSON object with three keys, 'operation', that is the operation name
             as written in the provided list, 'parameters', which is a list with the parameters
             in the order they appear in the operation definition, and 'plot', which is a boolean
@@ -132,6 +165,35 @@ class DataAgent(AgentBase):
             if plot:
                 self.plotter.plot_consumption_distribution(period)
                 str_result += ' [PLOT SHOWN]'
+        elif operation == 'get_daily_consumption':
+            period = parameters[0]
+            daily_data = self.plotter.data_access.get_daily_consumption(period)
+            if not daily_data:
+                str_result = f'Não há dados para o período {period}.'
+            else:
+                str_result = f'Consumo diário total em {period}: ' + ', '.join([f'{row[0]}: {round(row[1], 2)} kWh' for row in daily_data])
+                
+                if plot:
+                    self.plotter.plot_daily_consumption(period)
+                    str_result += ' [PLOT SHOWN]'
+        elif operation == 'get_power_readings_by_device':
+            period = parameters[0]
+            
+            self.plotter.plot_power_outliers(period)
+            str_result = 'The data is too extense for textual description, the plot was displayed to the user. [PLOT SHOWN]'
+        elif operation == 'get_power_factor_analysis':
+            device_id = parameters[0]
+            period = parameters[1]
+            pf_data = self.plotter.data_access.get_power_factor_analysis(device_id, period)
+            if not pf_data:
+                str_result = f'Não há dados para o aparelho ID {device_id} no período {period}.'
+            else:
+                str_result = f'Análise de fator de potência para o aparelho ID {device_id} em {period}: ' + ', '.join([f'Potência: {round(row[0], 2)} kW, Fator de Potência: {round(row[1], 2)}' for row in pf_data])
+                
+                if plot:
+                    device_name = next((row[0] for row in pf_data if row[0] == device_id), f'Aparelho {device_id}')
+                    self.plotter.plot_power_factor_analysis(device_id, device_name, period)
+                    str_result += ' [PLOT SHOWN]'
         else:
             str_result = 'The requested data operation can not be performed, stop the execution and inform the user'
         
