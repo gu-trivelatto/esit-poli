@@ -112,6 +112,10 @@ class ContextAnalyzer(AgentBase):
             You are an expert at analyzing the available CONTEXT and CHAT_HISTORY to decide if the available
             information is already enough to answer the question asked in USER_INPUT. \n
             
+            If the context informs you that an action could not be performed, or if the
+            context starts repeating itself, indicating that it got stuck in a loop, you must
+            decide that the answer is ready to avoid infinite loops. \n
+            
             Your output must be only 'ready' or 'continue', all lower case without
             any backticks. \n
             
